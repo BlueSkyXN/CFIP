@@ -6,7 +6,7 @@
 
 20210223，V2.1，在Win版本上，新增日本专用测速BAT和日本专用IP数据文件，然后加了个备份，顺便把日本IP加到原数据文件中  https://www.blueskyxn.com/202102/4205.html
 
-20210224, V2.2, 在Win版本上,替换原先的测速资源（Workers->pages)  https://www.blueskyxn.com/202102/4217.html
+20210224, V2.2, 在Win版本上,替换原先的测速资源（Workers->pages)  https://www.blueskyxn.com/202102/4217.html [请下载完整内容，否则会提示更新]
 
 
 
