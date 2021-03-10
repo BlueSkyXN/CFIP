@@ -14,20 +14,20 @@ goto start
 del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
 RD /S /Q temp
 cls
-if not exist "data.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev -o data.txt -#
-for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" data.txt') do (
+if not exist "dataJP.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev -o dataJP.txt -#
+for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" dataJP.txt') do (
 set domain=%%a
 )
-for /f "tokens=2 delims==" %%a in ('findstr /C:"file" data.txt') do (
+for /f "tokens=2 delims==" %%a in ('findstr /C:"file" dataJP.txt') do (
 set file=%%a
 )
-for /f "tokens=2 delims==" %%a in ('findstr /C:"database" data.txt') do (
+for /f "tokens=2 delims==" %%a in ('findstr /C:"database" dataJP.txt') do (
 set databaseold=%%a
 )
 title 生成CF节点IP
 set /a i=%random%%%5
 set /a n=0
-for /f "skip=7" %%a in (data.txt) do (
+for /f "skip=7" %%a in (dataJP.txt) do (
 if !n! EQU !i! (set /a randomip=!random!%%256&echo 生成随机IP %%a!randomip!&echo %%a!randomip!>>ip.txt&set /a i+=4) else (set /a n+=1)
 )
 for /f "tokens=2 delims=:" %%a in ('find /c /v "" ip.txt') do (
@@ -347,8 +347,26 @@ set /a starttime=%startH%*3600+%startM%*60+%startS%
 set /a stoptime=%stopH%*3600+%stopM%*60+%stopS%
 if %starttime% GTR %stoptime% (set /a alltime=86400-%starttime%+%stoptime%) else (set /a alltime=%stoptime%-%starttime%)
 curl --ipv4 --resolve cfip.pages.dev:443:!anycast! --retry 3 -s -X POST -d """CF-IP"":""!anycast!"",""Speed"":""!Max!""" "https://cfip.pages.dev" -o temp.txt
-
+for /f "tokens=2 delims==" %%a in ('findstr /C:"publicip" temp.txt') do (
+set publicip=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"colo" temp.txt') do (
+set colo=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"url" temp.txt') do (
+set url=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"app" temp.txt') do (
+set app=%%a
+if !app! NEQ 20201208 (echo 发现新版本程序: !app!&echo 更新地址: !url!&title 更新后才可以使用&echo 按任意键退出程序&pause>nul&exit)
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"database" temp.txt') do (
+set databasenew=%%a
+if !databasenew! NEQ !databaseold! (echo 发现新版本数据库: !databasenew!&move /Y temp.txt dataJP.txt>nul&echo 数据库 !databasenew! 已经自动更新完毕)
+)
 echo 优选IP !anycast! 满足 %Bandwidth% Mbps带宽需求&echo 峰值速度 !Max! kB/s
+echo 公网IP !publicip! 
+echo 数据中心 !colo!
 echo 总计用时 %alltime% 秒
 del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
 RD /S /Q temp

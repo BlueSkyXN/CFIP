@@ -9,49 +9,82 @@ while true
 do
 	while true
 	do
+		declare -i m
 		declare -i n
 		declare -i per
-		declare -i count
-		rm -rf icmp temp log.txt anycast.txt temp.txt
+		rm -rf icmp temp data.txt meta.txt log.txt anycast.txt temp.txt
 		mkdir icmp
-		datafile="./data.txt"
-		if [[ ! -f "$datafile" ]]
-		then
-			echo 获取CF节点IP
-			curl --retry 3 https://update.freecdn.workers.dev -o data.txt -#
-		fi
-		domain=$(cat data.txt | grep domain= | cut -f 2- -d'=')
-		file=$(cat data.txt | grep file= | cut -f 2- -d'=')
-		databaseold=$(cat data.txt | grep database= | cut -f 2- -d'=')
-		n=0
-		count=$(($RANDOM%5))
-		for i in `cat data.txt | sed '1,7d'`
+		while true
 		do
-			if [ $n -eq $count ]
+			if [ -f "resolve.txt" ]
 			then
-				randomip=$(($RANDOM%256))
-				echo 生成随机IP $i$randomip
-				echo $i$randomip>>anycast.txt
-				count+=4
+				echo 指向解析获取CF节点IP
+				resolveip=$(cat resolve.txt)
+				while true
+				do
+					if [ ! -f "meta.txt" ]
+					then
+						curl --ipv4 --resolve speed.cloudflare.com:443:$resolveip --retry 3 -v https://speed.cloudflare.com/__down>meta.txt 2>&1
+					else
+						asn=$(cat meta.txt | grep cf-meta-asn: | tr '\r' '\n' | awk '{print $3}')
+						city=$(cat meta.txt | grep cf-meta-city: | tr '\r' '\n' | awk '{print $3}')
+						latitude=$(cat meta.txt | grep cf-meta-latitude: | tr '\r' '\n' | awk '{print $3}')
+						longitude=$(cat meta.txt | grep cf-meta-longitude: | tr '\r' '\n' | awk '{print $3}')
+						curl --ipv4 --resolve service.udpfile.com:443:$resolveip --retry 3 "https://service.udpfile.com?asn="$asn"&city="$city"" -o data.txt -#
+						break
+					fi
+				done
 			else
-				n+=1
+				echo DNS解析获取CF节点IP
+				while true
+				do
+					if [ ! -f "meta.txt" ]
+					then
+						curl --ipv4 --retry 3 -v https://speed.cloudflare.com/__down>meta.txt 2>&1
+					else
+						asn=$(cat meta.txt | grep cf-meta-asn: | tr '\r' '\n' | awk '{print $3}')
+						city=$(cat meta.txt | grep cf-meta-city: | tr '\r' '\n' | awk '{print $3}')
+						latitude=$(cat meta.txt | grep cf-meta-latitude: | tr '\r' '\n' | awk '{print $3}')
+						longitude=$(cat meta.txt | grep cf-meta-longitude: | tr '\r' '\n' | awk '{print $3}')
+						curl --ipv4 --retry 3 "https://service.udpfile.com?asn="$asn"&city="$city"" -o data.txt -#
+						break
+					fi
+				done
+			fi
+			if [ -f "data.txt" ]
+			then
+				break
 			fi
 		done
-		n=0
+		domain=$(cat data.txt | grep domain= | cut -f 2- -d'=')
+		file=$(cat data.txt | grep file= | cut -f 2- -d'=')
+		url=$(cat data.txt | grep url= | cut -f 2- -d'=')
+		app=$(cat data.txt | grep app= | cut -f 2- -d'=')
+		if [ "$app" != "20210308" ]
+		then
+			echo 发现新版本程序: $app
+			echo 更新地址: $url
+			echo 更新后才可以使用
+			exit
+		fi
+		for i in `cat data.txt | sed '1,4d'`
+		do
+			echo $i>>anycast.txt
+		done
+		rm -rf meta.txt data.txt
 		m=$(cat anycast.txt | wc -l)
-		count=m/30+1
 		for i in `cat anycast.txt`
 		do
-			ping -c $count -i 0.2 -n -q $i > icmp/$n.log&
+			ping -c 10 -i 1 -n -q $i > icmp/$n.log&
 			n=$[$n+1]
 			per=$n*100/$m
 			while true
 			do
 				p=$(ps -ef | grep ping | grep -v "grep" | wc -l)
-				if [ $p -ge 200 ]
+				if [ $p -ge 100 ]
 				then
 					echo 正在测试 ICMP 丢包率:进程数 $p,已完成 $per %
-					sleep 0.5
+					sleep 1
 				else
 					echo 正在测试 ICMP 丢包率:进程数 $p,已完成 $per %
 					break
@@ -61,7 +94,7 @@ do
 		rm -rf anycast.txt
 		while true
 		do
-			p=$(ps -ef | grep ping | grep -v "grep" | wc -l)
+			p=$(ps | grep ping | grep -v "grep" | wc -l)
 			if [ $p -ne 0 ]
 			then
 				echo 等待 ICMP 进程结束:剩余进程数 $p
@@ -71,9 +104,9 @@ do
 				break
 			fi
 		done
-		cat icmp/*.log | sed -n '3~5p;4~5p' | sed -n '{N;s/\n/\t/p}' | cut -f 1 -d'%' | awk '{print $2,$NF}' | sort -k 2 -n | awk '{print $1}' | sed '31,$d' > ip.txt
+		cat icmp/*.log | grep 'statistics\|loss\|avg' | sed 'N;N;s/\n/ /g' | awk -F, '{print $1,$3}' | awk '{print $2,$9,$15}' | awk -F% '{print $1,$2}' | awk -F/ '{print $1,$2}' | awk '{print $2,$4,$1}' | sort -n | awk '{print $3}' | sed '21,$d' > ip.txt
 		rm -rf icmp
-		echo 选取30个丢包率最少的IP地址下载测速
+		echo 选取20个丢包率最少的IP地址下载测速
 		mkdir temp
 		for i in `cat ip.txt`
 		do
@@ -111,6 +144,7 @@ do
 				echo $M >> speed.txt
 			done
 			declare -i max
+			declare -i max1
 			max=0
 			for i in `cat speed.txt`
 			do
@@ -125,6 +159,7 @@ do
 				break
 			fi
 			max=$[$max/1024]
+			max1=max
 			echo 峰值速度 $max kB/s
 			echo 第二次测试 $first
 			curl --resolve $domain:443:$first https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
@@ -145,6 +180,7 @@ do
 				echo $M >> speed.txt
 			done
 			declare -i max
+			declare -i max2
 			max=0
 			for i in `cat speed.txt`
 			do
@@ -159,7 +195,14 @@ do
 				break
 			fi
 			max=$[$max/1024]
+			max2=max
 			echo 峰值速度 $max kB/s
+			if [ $max1 -ge $max2 ]
+			then
+				curl --ipv4 --resolve service.udpfile.com:443:$first --retry 3 -s -X POST -d ''20210308-$first-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+			else
+				curl --ipv4 --resolve service.udpfile.com:443:$first --retry 3 -s -X POST -d ''20210308-$first-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+			fi
 			echo 第一次测试 $second
 			curl --resolve $domain:443:$second https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
 			cat log.txt | tr '\r' '\n' | awk '{print $NF}' | sed '1,3d;$d' | grep -v 'k\|M' >> speed.txt
@@ -179,6 +222,7 @@ do
 				echo $M >> speed.txt
 			done
 			declare -i max
+			declare -i max1
 			max=0
 			for i in `cat speed.txt`
 			do
@@ -193,6 +237,7 @@ do
 				break
 			fi
 			max=$[$max/1024]
+			max1=max
 			echo 峰值速度 $max kB/s
 			echo 第二次测试 $second
 			curl --resolve $domain:443:$second https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
@@ -213,6 +258,7 @@ do
 				echo $M >> speed.txt
 			done
 			declare -i max
+			declare -i max2
 			max=0
 			for i in `cat speed.txt`
 			do
@@ -227,7 +273,14 @@ do
 				break
 			fi
 			max=$[$max/1024]
+			max2=max
 			echo 峰值速度 $max kB/s
+			if [ $max1 -ge $max2 ]
+			then
+				curl --ipv4 --resolve service.udpfile.com:443:$second --retry 3 -s -X POST -d ''20210308-$second-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+			else
+				curl --ipv4 --resolve service.udpfile.com:443:$second --retry 3 -s -X POST -d ''20210308-$second-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+			fi
 			echo 第一次测试 $third
 			curl --resolve $domain:443:$third https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
 			cat log.txt | tr '\r' '\n' | awk '{print $NF}' | sed '1,3d;$d' | grep -v 'k\|M' >> speed.txt
@@ -247,6 +300,7 @@ do
 				echo $M >> speed.txt
 			done
 			declare -i max
+			declare -i max1
 			max=0
 			for i in `cat speed.txt`
 			do
@@ -261,6 +315,7 @@ do
 				break
 			fi
 			max=$[$max/1024]
+			max1=max
 			echo 峰值速度 $max kB/s
 			echo 第二次测试 $third
 			curl --resolve $domain:443:$third https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
@@ -281,6 +336,7 @@ do
 				echo $M >> speed.txt
 			done
 			declare -i max
+			declare -i max2
 			max=0
 			for i in `cat speed.txt`
 			do
@@ -295,39 +351,36 @@ do
 				break
 			fi
 			max=$[$max/1024]
+			max2=max
 			echo 峰值速度 $max kB/s
+			if [ $max1 -ge $max2 ]
+			then
+				curl --ipv4 --resolve service.udpfile.com:443:$third --retry 3 -s -X POST -d ''20210308-$third-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+			else
+				curl --ipv4 --resolve service.udpfile.com:443:$third --retry 3 -s -X POST -d ''20210308-$third-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+			fi
 		fi
 	done
 		break
 done
 	max=$[$max/1024]
+	declare -i realbandwidth
+	realbandwidth=max/128
 	endtime=`date +'%Y-%m-%d %H:%M:%S'`
 	start_seconds=$(date --date="$starttime" +%s)
 	end_seconds=$(date --date="$endtime" +%s)
 	clear
-	curl --ipv4 --resolve update.freecdn.workers.dev:443:$anycast --retry 3 -s -X POST -d '"CF-IP":"'$anycast'","Speed":"'$max'"' 'https://update.freecdn.workers.dev' -o temp.txt
+	curl --ipv4 --resolve service.udpfile.com:443:$anycast --retry 3 -s -X POST -d ''20210308-$anycast-$max'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o temp.txt
 	publicip=$(cat temp.txt | grep publicip= | cut -f 2- -d'=')
 	colo=$(cat temp.txt | grep colo= | cut -f 2- -d'=')
-	url=$(cat temp.txt | grep url= | cut -f 2- -d'=')
-	url=$(cat temp.txt | grep url= | cut -f 2- -d'=')
-	app=$(cat temp.txt | grep app= | cut -f 2- -d'=')
-	databasenew=$(cat temp.txt | grep database= | cut -f 2- -d'=')
-	if [ "$app" != "20201208" ]
-	then
-		echo 发现新版本程序: $app
-		echo 更新地址: $url
-		echo 更新后才可以使用
-		exit
-	fi
-	if [ "$databasenew" != "$databaseold" ]
-	then
-		echo 发现新版本数据库: $databasenew
-		mv temp.txt data.txt
-		echo 数据库 $databasenew 已经自动更新完毕
-	fi
 	rm -rf temp.txt
+	echo $anycast>resolve.txt
 	echo 优选IP $anycast 满足 $bandwidth Mbps带宽需求
-	echo 峰值速度 $max kB/s
 	echo 公网IP $publicip
+	echo 自治域 AS$asn
+	echo 经纬度 $longitude,$latitude
+	echo META城市 $city
+	echo 实测带宽 $realbandwidth Mbps
+	echo 峰值速度 $max kB/s
 	echo 数据中心 $colo
 	echo 总计用时 $((end_seconds-start_seconds)) 秒

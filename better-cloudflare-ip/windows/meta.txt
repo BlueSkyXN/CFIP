@@ -1,0 +1,77 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 104.16.148.27:443...
+* Connected to speed.cloudflare.com (104.16.148.27) port 443 (#0)
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*  CAfile: E:\better-cloudflare-ip\better-cloudflare-ip\windows\curl-ca-bundle.crt
+*  CApath: none
+} [5 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+} [512 bytes data]
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+{ [25 bytes data]
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+{ [2232 bytes data]
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+{ [78 bytes data]
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+{ [52 bytes data]
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+} [1 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+} [52 bytes data]
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: C=US; ST=CA; L=San Francisco; O=Cloudflare, Inc.; CN=sni.cloudflaressl.com
+*  start date: Jul 10 00:00:00 2020 GMT
+*  expire date: Jul 10 12:00:00 2021 GMT
+*  subjectAltName: host "speed.cloudflare.com" matched cert's "speed.cloudflare.com"
+*  issuer: C=US; O=Cloudflare, Inc.; CN=Cloudflare Inc ECC CA-3
+*  SSL certificate verify ok.
+} [5 bytes data]
+> GET /__down HTTP/1.1
+> Host: speed.cloudflare.com
+> User-Agent: curl/7.73.0
+> Accept: */*
+> 
+{ [5 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [230 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [230 bytes data]
+* old SSL session ID is stale, removing
+{ [5 bytes data]
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Date: Wed, 10 Mar 2021 13:56:52 GMT
+< Content-Type: application/octet-stream
+< Content-Length: 67
+< Connection: keep-alive
+< Set-Cookie: __cfduid=d978d8e369a2a9b6607b750c5880235961615384612; expires=Fri, 09-Apr-21 13:56:52 GMT; path=/; domain=.speed.cloudflare.com; HttpOnly; SameSite=Lax
+< Access-Control-Allow-Origin: *
+< Cache-Control: no-store
+< access-control-expose-headers: server-timing,cf-meta-ip,cf-meta-request-time,cf-meta-colo,cf-meta-asn,cf-meta-country,cf-meta-city,cf-meta-latitude,cf-meta-longitude,cf-meta-timezone
+< cf-meta-asn: 4134
+< cf-meta-city: Fuzhou
+< cf-meta-colo: SJC
+< cf-meta-country: CN
+< cf-meta-ip: 222.76.67.53
+< cf-meta-latitude: 26.06140
+< cf-meta-longitude: 119.30610
+< cf-meta-request-time: 1615384612328
+< cf-meta-timezone: Asia/Shanghai
+< timing-allow-origin: *
+< cf-request-id: 08be0625e1000093d6e3b94000000001
+< Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+< Server-Timing: cfRequestDuration;dur=405.999899
+< Server: cloudflare
+< CF-RAY: 62dd0c830f5293d6-SJC
+< 
+{ [67 bytes data]
+100    67  100    67    0     0     53      0  0:00:01  0:00:01 --:--:--    53100    67  100    67    0     0     53      0  0:00:01  0:00:01 --:--:--    53___f49da6ca611c12d829362610a6f493603689b3a5a06f0fc37593ab1077a1a48e
+* Connection #0 to host speed.cloudflare.com left intact

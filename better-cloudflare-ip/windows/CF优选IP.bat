@@ -4,61 +4,128 @@ cls
 cd "%~dp0"
 color A
 setlocal enabledelayedexpansion
-set /p Bandwidth=请设置期望到 CloudFlare 服务器的带宽大小(单位 Mbps):
-set /a Speed=%Bandwidth%*128
+set /p bandwidth=请设置期望到 CloudFlare 服务器的带宽大小(单位 Mbps):
+set /a speed=%bandwidth%*128
 set /a startH=%time:~0,2%
 if %time:~3,1% EQU 0 (set /a startM=%time:~4,1%) else (set /a startM=%time:~3,2%)
 if %time:~6,1% EQU 0 (set /a startS=%time:~7,1%) else (set /a startS=%time:~6,2%)
 goto start
 :start
-del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
+del data.txt ip.txt CR.txt CRLF.txt cut.txt speed.txt meta.txt
 RD /S /Q temp
 cls
-if not exist "data.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev -o data.txt -#
+if exist "resolve.txt" goto resolve
+if not exist "resolve.txt" goto dnsresolve
+:dnsresolve
+title DNS解析获取CF节点IP
+curl --ipv4 --retry 3 -v https://speed.cloudflare.com/__down>meta.txt 2>&1
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-asn:" meta.txt') do (
+set asn=%%i
+)
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-city:" meta.txt') do (
+set city=%%i
+)
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-latitude:" meta.txt') do (
+set latitude=%%i
+)
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-longitude:" meta.txt') do (
+set longitude=%%i
+)
+curl --ipv4 --retry 3 https://service.udpfile.com?asn=%asn%^&city=%city% -o data.txt -#
+goto getip
+:resolve
+for /f "delims=" %%i in (resolve.txt) do (
+set resolveip=%%i
+)
+title 指向解析获取CF节点IP
+curl --ipv4 --resolve speed.cloudflare.com:443:%resolveip% --retry 3 -v https://speed.cloudflare.com/__down>meta.txt 2>&1
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-asn:" meta.txt') do (
+set asn=%%i
+)
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-city:" meta.txt') do (
+set city=%%i
+)
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-latitude:" meta.txt') do (
+set latitude=%%i
+)
+for /f "tokens=3 delims= " %%i in ('findstr "cf-meta-longitude:" meta.txt') do (
+set longitude=%%i
+)
+curl --ipv4 --resolve service.udpfile.com:443:%resolveip% --retry 3 https://service.udpfile.com?asn=%asn%^&city=%city% -o data.txt -#
+if not exist "data.txt" goto start
+if not exist "meta.txt" goto start
+del meta.txt
+:getip
+for /f "skip=4" %%i in (data.txt) do (
+echo %%i>>ip.txt
+)
 for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" data.txt') do (
 set domain=%%a
 )
 for /f "tokens=2 delims==" %%a in ('findstr /C:"file" data.txt') do (
 set file=%%a
 )
-for /f "tokens=2 delims==" %%a in ('findstr /C:"database" data.txt') do (
-set databaseold=%%a
+for /f "tokens=2 delims==" %%a in ('findstr /C:"url" data.txt') do (
+set url=%%a
 )
-title 生成CF节点IP
-set /a i=%random%%%5
-set /a n=0
-for /f "skip=7" %%a in (data.txt) do (
-if !n! EQU !i! (set /a randomip=!random!%%256&echo 生成随机IP %%a!randomip!&echo %%a!randomip!>>ip.txt&set /a i+=4) else (set /a n+=1)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"app" data.txt') do (
+set app=%%a
+if !app! NEQ 20210308 (echo 发现新版本程序: !app!&echo 更新地址: !url!&title 更新后才可以使用&echo 按任意键退出程序&pause>nul&exit)
 )
-for /f "tokens=2 delims=:" %%a in ('find /c /v "" ip.txt') do (
-set /a count=%%a
-set /a count=count/30+1
-)
+del data.txt
 title 测试 ICMP 丢包率
-fping -f ip.txt -c %count% --interval=1 -s > ping.csv
-findstr "%%" ping.csv > temp.csv
+fping -f ip.txt -c 10 --interval=0 -s > ping.csv
+echo 开始处理丢包率数据
+findstr "%%" ping.csv>temp.csv
 del ping.csv
+for /f "tokens=1,2,5 delims=, " %%a in (temp.csv) do (
+echo %%a,%%b,%%c>>ping.csv
+)
+del temp.csv
+for /f "delims=" %%a in (ping.csv) do (
+set temp=%%a
+set temp=!temp:%%=!
+set temp=!temp:ms=!
+echo !temp!>>temp.csv
+)
+del ping.csv
+for /f "tokens=1,2,3 delims=," %%a in (temp.csv) do (
+if %%b LSS 10 (echo   %%b,%%c,%%a>>ping.csv) else if %%b LSS 100 (echo  %%b,%%c,%%a>>ping.csv)
+)
+del temp.csv
+for /f "tokens=1,2,3 delims=," %%a in (ping.csv) do (
+set temp=%%b
+set temp=!temp:.0=!
+set temp=!temp:.1=!
+set temp=!temp:.2=!
+set temp=!temp:.3=!
+set temp=!temp:.4=!
+set temp=!temp:.5=!
+set temp=!temp:.6=!
+set temp=!temp:.7=!
+set temp=!temp:.8=!
+set temp=!temp:.9=!
+if !temp! LSS 100 (echo %%a, %%b,%%c>>temp.csv) else (echo %%a,%%b,%%c>>temp.csv)
+)
+sort /+5 temp.csv | sort /o ping.csv
 del ip.txt
-sort /+17 temp.csv /o ping.csv
 del temp.csv
 del sort.txt
 cls
 set /a a=0
-for /f "delims=" %%a in (ping.csv) do (
-set s=%%a
-set s=!s:~0,15!
+for /f "tokens=3 delims=," %%a in (ping.csv) do (
+echo %%a>>sort.txt
 set /a a=a+1
 title 提取测试后的IP地址----正在处理第 !a! 行
-echo !s%!>>sort.txt
 )
 del ping.csv
 cls
 set count=0
 for /f "tokens=1,2" %%a in ('type "sort.txt"') do (
 echo %%a >> ip.txt
-title 选取30个丢包率最少的IP地址下载测速
+title 选取20个丢包率最少的IP地址下载测速
 set /a count+=1
-if !count! equ 30 goto speedtest
+if !count! equ 20 goto speedtest
 )
 :speedtest
 del sort.txt
@@ -129,16 +196,17 @@ set /a x=!y%!*1024/10
 set /a z=x+y
 echo !z! >> speed.txt
 )
-set /a Max=0
+set /a max=0
 for /f "tokens=1,2" %%a in ('type "speed.txt"') do (
-if %%a GEQ !Max! set /a Max=%%a
+if %%a GEQ !max! set /a max=%%a
 )
-if !Max! GEQ !Speed! (cls&set anycast=!a!&goto end) else (goto two)
+set /a max1=max
+if !max! GEQ !speed! (cls&set anycast=!a!&goto end) else (goto two)
 :two
 chcp 936
 del CRLF.txt cut.txt speed.txt
 cls
-echo 第一次测试 !a! 不满足带宽需求,峰值速度 !Max! kB/s
+echo 第一次测试 !a! 不满足带宽需求,峰值速度 !max! kB/s
 echo 第二次测试 !a!
 curl --resolve !domain!:443:!a! https://!domain!/!file! -o nul --connect-timeout 5 --max-time 10 > CR.txt 2>&1
 findstr "0:" CR.txt >> CRLF.txt
@@ -170,16 +238,18 @@ set /a y=!y%!*1024/10
 set /a z=x+y
 echo !z! >> speed.txt
 )
-set /a Max=0
+set /a max=0
 for /f "tokens=1,2" %%a in ('type "speed.txt"') do (
-if %%a GEQ !Max! set /a Max=%%a
+if %%a GEQ !max! set /a max=%%a
 )
-if !Max! GEQ !Speed! (cls&set anycast=!a!&goto end) else (goto three)
+set /a max2=max
+if !max! GEQ !speed! (cls&set anycast=!a!&goto end) else (goto three)
 :three
 chcp 936
 del CRLF.txt cut.txt speed.txt
 cls
-echo 第二次测试 !a! 不满足带宽需求,峰值速度 !Max! kB/s
+if !max1! GEQ !max2! (curl --ipv4 --resolve service.udpfile.com:443:!a! --retry 3 -s -X POST -d "20210308-!a!-!max1!" https://service.udpfile.com?asn=%asn%^&city=%city% -o nul --connect-timeout 5 --max-time 10) else (curl --ipv4 --resolve service.udpfile.com:443:!a! --retry 3 -s -X POST -d "20210308-!a!-!max2!" https://service.udpfile.com?asn=%asn%^&city=%city% -o nul --connect-timeout 5 --max-time 10)
+echo 第二次测试 !a! 不满足带宽需求,峰值速度 !max! kB/s
 echo 第一次测试 !b!
 curl --resolve !domain!:443:!b! https://!domain!/!file! -o nul --connect-timeout 5 --max-time 10 > CR.txt 2>&1
 findstr "0:" CR.txt >> CRLF.txt
@@ -211,16 +281,17 @@ set /a y=!y%!*1024/10
 set /a z=x+y
 echo !z! >> speed.txt
 )
-set /a Max=0
+set /a max=0
 for /f "tokens=1,2" %%a in ('type "speed.txt"') do (
-if %%a GEQ !Max! set /a Max=%%a
+if %%a GEQ !max! set /a max=%%a
 )
-if !Max! GEQ !Speed! (cls&set anycast=!b!&goto end) else (goto four)
+set /a max1=max
+if !max! GEQ !speed! (cls&set anycast=!b!&goto end) else (goto four)
 :four
 chcp 936
 del CRLF.txt cut.txt speed.txt
 cls
-echo 第一次测试 !b! 不满足带宽需求,峰值速度 !Max! kB/s
+echo 第一次测试 !b! 不满足带宽需求,峰值速度 !max! kB/s
 echo 第二次测试 !b!
 curl --resolve !domain!:443:!b! https://!domain!/!file! -o nul --connect-timeout 5 --max-time 10 > CR.txt 2>&1
 findstr "0:" CR.txt >> CRLF.txt
@@ -252,16 +323,18 @@ set /a y=!y%!*1024/10
 set /a z=x+y
 echo !z! >> speed.txt
 )
-set /a Max=0
+set /a max=0
 for /f "tokens=1,2" %%a in ('type "speed.txt"') do (
-if %%a GEQ !Max! set /a Max=%%a
+if %%a GEQ !max! set /a max=%%a
 )
-if !Max! GEQ !Speed! (cls&set anycast=!b!&goto end) else (goto five)
+set /a max2=max
+if !max! GEQ !speed! (cls&set anycast=!b!&goto end) else (goto five)
 :five
 chcp 936
 del CRLF.txt cut.txt speed.txt
 cls
-echo 第二次测试 !b! 不满足带宽需求,峰值速度 !Max! kB/s
+if !max1! GEQ !max2! (curl --ipv4 --resolve service.udpfile.com:443:!b! --retry 3 -s -X POST -d "20210308-!b!-!max1!" https://service.udpfile.com?asn=%asn%^&city=%city% -o nul --connect-timeout 5 --max-time 10) else (curl --ipv4 --resolve service.udpfile.com:443:!b! --retry 3 -s -X POST -d "20210308-!b!-!max2!" https://service.udpfile.com?asn=%asn%^&city=%city% -o nul --connect-timeout 5 --max-time 10)
+echo 第二次测试 !b! 不满足带宽需求,峰值速度 !max! kB/s
 echo 第一次测试 !c!
 curl --resolve !domain!:443:!c! https://!domain!/!file! -o nul --connect-timeout 5 --max-time 10 > CR.txt 2>&1
 findstr "0:" CR.txt >> CRLF.txt
@@ -293,16 +366,17 @@ set /a y=!y%!*1024/10
 set /a z=x+y
 echo !z! >> speed.txt
 )
-set /a Max=0
+set /a max=0
 for /f "tokens=1,2" %%a in ('type "speed.txt"') do (
-if %%a GEQ !Max! set /a Max=%%a
+if %%a GEQ !max! set /a max=%%a
 )
-if !Max! GEQ !Speed! (cls&set anycast=!c!&goto end) else (goto six)
+set /a max1=max
+if !max! GEQ !speed! (cls&set anycast=!c!&goto end) else (goto six)
 :six
 chcp 936
 del CRLF.txt cut.txt speed.txt
 cls
-echo 第一次测试 !c! 不满足带宽需求,峰值速度 !Max! kB/s
+echo 第一次测试 !c! 不满足带宽需求,峰值速度 !max! kB/s
 echo 第二次测试 !c!
 curl --resolve !domain!:443:!c! https://!domain!/!file! -o nul --connect-timeout 5 --max-time 10 > CR.txt 2>&1
 findstr "0:" CR.txt >> CRLF.txt
@@ -334,23 +408,47 @@ set /a y=!y%!*1024/10
 set /a z=x+y
 echo !z! >> speed.txt
 )
-set /a Max=0
+set /a max=0
 for /f "tokens=1,2" %%a in ('type "speed.txt"') do (
-if %%a GEQ !Max! set /a Max=%%a
+if %%a GEQ !max! set /a max=%%a
 )
-if !Max! GEQ !Speed! (cls&set anycast=!c!&goto end) else (goto start)
+set /a max2=max
+if !max! GEQ !speed! (cls&set anycast=!c!&goto end) else (goto seven)
+:seven
+chcp 936
+del CRLF.txt cut.txt speed.txt
+cls
+echo 第二次测试 !c! 不满足带宽需求,峰值速度 !max! kB/s
+if !max1! GEQ !max2! (curl --ipv4 --resolve service.udpfile.com:443:!c! --retry 3 -s -X POST -d "20210308-!c!-!max1!" https://service.udpfile.com?asn=%asn%^&city=%city% -o nul --connect-timeout 5 --max-time 10) else (curl --ipv4 --resolve service.udpfile.com:443:!c! --retry 3 -s -X POST -d "20210308-!c!-!max2!" https://service.udpfile.com?asn=%asn%^&city=%city% -o nul --connect-timeout 5 --max-time 10)
+goto start
 :end
+set /a realbandwidth=max/128
 set /a stopH=%time:~0,2%
 if %time:~3,1% EQU 0 (set /a stopM=%time:~4,1%) else (set /a stopM=%time:~3,2%)
 if %time:~6,1% EQU 0 (set /a stopS=%time:~7,1%) else (set /a stopS=%time:~6,2%)
 set /a starttime=%startH%*3600+%startM%*60+%startS%
 set /a stoptime=%stopH%*3600+%stopM%*60+%stopS%
 if %starttime% GTR %stoptime% (set /a alltime=86400-%starttime%+%stoptime%) else (set /a alltime=%stoptime%-%starttime%)
-curl --ipv4 --resolve cfip.pages.dev:443:!anycast! --retry 3 -s -X POST -d """CF-IP"":""!anycast!"",""Speed"":""!Max!""" "https://cfip.pages.dev" -o temp.txt
-
-echo 优选IP !anycast! 满足 %Bandwidth% Mbps带宽需求&echo 峰值速度 !Max! kB/s
+curl --ipv4 --resolve service.udpfile.com:443:!anycast! --retry 3 -s -X POST -d "20210308-!anycast!-!max!" https://service.udpfile.com?asn=%asn%^&city=%city% -o data.txt
+for /f "tokens=2 delims==" %%a in ('findstr /C:"publicip" data.txt') do (
+set publicip=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"colo" data.txt') do (
+set colo=%%a
+)
+echo 优选IP !anycast! 满足 %bandwidth% Mbps带宽需求
+echo 公网IP !publicip!
+echo 自治域 AS%asn%
+echo 经纬度 %longitude%,%latitude%
+echo META城市 %city%
+echo 实测带宽 %realbandwidth% Mbps
+echo 峰值速度 !max! kB/s
+echo 数据中心 !colo!
 echo 总计用时 %alltime% 秒
-del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
+echo !anycast!>resolve.txt
+echo !anycast!|clip
+del data.txt ip.txt CR.txt CRLF.txt cut.txt speed.txt meta.txt
 RD /S /Q temp
+echo 优选IP已经自动复制到剪贴板
 echo 按任意键关闭
 pause>nul

@@ -347,8 +347,26 @@ set /a starttime=%startH%*3600+%startM%*60+%startS%
 set /a stoptime=%stopH%*3600+%stopM%*60+%stopS%
 if %starttime% GTR %stoptime% (set /a alltime=86400-%starttime%+%stoptime%) else (set /a alltime=%stoptime%-%starttime%)
 curl --ipv4 --resolve cfip.pages.dev:443:!anycast! --retry 3 -s -X POST -d """CF-IP"":""!anycast!"",""Speed"":""!Max!""" "https://cfip.pages.dev" -o temp.txt
-
+for /f "tokens=2 delims==" %%a in ('findstr /C:"publicip" temp.txt') do (
+set publicip=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"colo" temp.txt') do (
+set colo=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"url" temp.txt') do (
+set url=%%a
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"app" temp.txt') do (
+set app=%%a
+if !app! NEQ 20201208 (echo 发现新版本程序: !app!&echo 更新地址: !url!&title 更新后才可以使用&echo 按任意键退出程序&pause>nul&exit)
+)
+for /f "tokens=2 delims==" %%a in ('findstr /C:"database" temp.txt') do (
+set databasenew=%%a
+if !databasenew! NEQ !databaseold! (echo 发现新版本数据库: !databasenew!&move /Y temp.txt data.txt>nul&echo 数据库 !databasenew! 已经自动更新完毕)
+)
 echo 优选IP !anycast! 满足 %Bandwidth% Mbps带宽需求&echo 峰值速度 !Max! kB/s
+echo 公网IP !publicip! 
+echo 数据中心 !colo!
 echo 总计用时 %alltime% 秒
 del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
 RD /S /Q temp
