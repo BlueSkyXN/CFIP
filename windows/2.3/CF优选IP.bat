@@ -14,20 +14,20 @@ goto start
 del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
 RD /S /Q temp
 cls
-if not exist "dataJP.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev/jp -o dataJP.txt -#
-for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" dataJP.txt') do (
+if not exist "data.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev -o data.txt -#
+for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" data.txt') do (
 set domain=%%a
 )
-for /f "tokens=2 delims==" %%a in ('findstr /C:"file" dataJP.txt') do (
+for /f "tokens=2 delims==" %%a in ('findstr /C:"file" data.txt') do (
 set file=%%a
 )
-for /f "tokens=2 delims==" %%a in ('findstr /C:"database" dataJP.txt') do (
+for /f "tokens=2 delims==" %%a in ('findstr /C:"database" data.txt') do (
 set databaseold=%%a
 )
 title 生成CF节点IP
 set /a i=%random%%%5
 set /a n=0
-for /f "skip=7" %%a in (dataJP.txt) do (
+for /f "skip=7" %%a in (data.txt) do (
 if !n! EQU !i! (set /a randomip=!random!%%256&echo 生成随机IP %%a!randomip!&echo %%a!randomip!>>ip.txt&set /a i+=4) else (set /a n+=1)
 )
 for /f "tokens=2 delims=:" %%a in ('find /c /v "" ip.txt') do (
