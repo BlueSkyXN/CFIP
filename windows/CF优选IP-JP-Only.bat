@@ -14,7 +14,7 @@ goto start
 del ip.txt CR.txt CRLF.txt cut.txt speed.txt temp.txt
 RD /S /Q temp
 cls
-if not exist "dataJP.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev -o dataJP.txt -#
+if not exist "dataJP.txt" title 获取CF节点IP&curl --retry 3 https://cfip.pages.dev/jp -o dataJP.txt -#
 for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" dataJP.txt') do (
 set domain=%%a
 )
