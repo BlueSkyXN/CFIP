@@ -1,5 +1,5 @@
-domain=speed.haoren.ml
-file=cache.jpg
+domain=cfip.hey.pw
+file=moon_81m.png
 172.64.228.
 172.64.228.
 172.64.228.
