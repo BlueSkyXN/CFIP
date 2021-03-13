@@ -10,6 +10,12 @@
 
 20210310, V2.3, 移除更新提示，优化了Data.txt和DataJP.txt获取，完善备份，移除没准备开发的版本，需要注意原作者新版本和我基于旧版本二开的有较大差异，随便用哪个，目前测速图还没挂，等挂了再修
 
+20210311, V2.4, 测速图挂了，已经修复
+
+20210313，V2.5，调整了日本IP算法参数，另外新增横向搜索优化测速脚本【单批次时长变长，但是更容易筛选出高速IP】
+
+
+
 ## 原作better-cloudflare-ip的相关介绍
 
 https://github.com/badafans/better-cloudflare-ip/blob/master/README.md
