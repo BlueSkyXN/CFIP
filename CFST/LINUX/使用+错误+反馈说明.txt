@@ -1,0 +1,15 @@
+详细使用说明请看：
+
+- Github：https://github.com/XIU2/CloudflareSpeedTest
+- 知乎：https://zhuanlan.zhihu.com/p/207315892
+
+可以去这两个网站向我 [反馈问题、提供建议、询问使用方法] ！
+
+如果平均延迟非常低（如 0.xx），则说明 CloudflareST 测速时走了代理，请先关闭代理软件后再测速。
+如果在路由器上运行（如 OpenWrt），请先关闭路由器内的代理，否则测速结果会不准确且无法使用。
+
+脚本【cfst_host.sh】的作用是 CloudflareST 测速后获取最快 IP 并替换 Hosts 中的 Cloudflare CDN IP。
+使用前请先阅读：https://github.com/XIU2/CloudflareSpeedTest/issues/42#issuecomment-768273848
+
+在对应路径
+./CloudflareST -ipv6 -f ipv6.txt

@@ -1,8 +1,0 @@
-domain=cfip.hey.pw
-file=moon_81m.png
-
-domain=cf.xiu2.xyz
-file=Github/CloudflareSpeedTest.png
-
-domain=cfip.great-fire-wall.cn
-file=cache.jpg
