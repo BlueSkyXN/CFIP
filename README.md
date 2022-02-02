@@ -4,6 +4,15 @@
 
 关注频道获取最新咨询：https://t.me/blueskyxnblog 
 
+# 推荐使用
+没空折腾，用其他人的吧
+
+https://github.com/badafans/better-cloudflare-ip
+
+https://github.com/XIU2/CloudflareSpeedTest
+
+
+
 ## 魔改日志
 
 20210223，V2.1，在Win版本上，新增日本专用测速BAT和日本专用IP数据文件，然后加了个备份，顺便把日本IP加到原数据文件中  https://www.blueskyxn.com/202102/4205.html
