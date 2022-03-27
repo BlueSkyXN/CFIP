@@ -5,7 +5,7 @@ color A
 setlocal enabledelayedexpansion
 cls
 set /p a=«Î ‰»Î”≈—° IP :
-curl --ipv4 --resolve cfip.pages.dev:443:%a% https://cfip.pages.dev -o temp.txt -#
+curl --ipv4 --resolve cfcf.mihoyo.tk:443:%a% https://cfcf.mihoyo.tk/data.txt -o temp.txt -#
 for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" temp.txt') do (
 set domain=%%a
 )
