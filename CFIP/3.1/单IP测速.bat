@@ -5,7 +5,7 @@ color A
 setlocal enabledelayedexpansion
 cls
 set /p a=«Î ‰»Î”≈—° IP :
-curl --ipv4 --resolve cfcf.mihoyo.tk:443:%a% http://cfcf.mihoyo.tk/data.txt -o temp.txt -#
+curl --ipv4 --resolve cfcf.mihoyo.tk:443:%a% https://doc-cdn.netlify.app/data.txt -o temp.txt -#
 for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" temp.txt') do (
 set domain=%%a
 )
