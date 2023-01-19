@@ -4,7 +4,7 @@ cd %~dp0
 color A
 setlocal enabledelayedexpansion
 cls
-set /p a=ÇëÊäÈëÓÅÑ¡ IP :
+set /p a=ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ IP :
 curl --ipv4 --resolve cfip.pages.dev:443:%a% https://cfip.pages.dev -o temp.txt -#
 for /f "tokens=2 delims==" %%a in ('findstr /C:"domain" temp.txt') do (
 set domain=%%a
@@ -12,7 +12,7 @@ set domain=%%a
 for /f "tokens=2 delims==" %%a in ('findstr /C:"file" temp.txt') do (
 set file=%%a
 )
-
-title  ÕıÔÚ²âÊÔ %a%
+del temp.txt
+title  ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ %a%
 curl --resolve !domain!:443:%a% https://!domain!/!file! -o nul
 pause
