@@ -28,3 +28,5 @@ CloudflareST.exe -f ip1.txt
 
 注意：如果要指定 -f ipv6.txt ，则需要同时加上 -ipv6 参数，才会正确测速 IPv6：
 CloudflareST.exe -f ipv6.txt -ipv6
+
+G:\Github\CFIP\CFIP\3.2\CloudflareST.exe -url https://cfcf.skyit.uk/cache.jpg -f G:\Github\CFIP\CFIP\3.2\ip.txt
